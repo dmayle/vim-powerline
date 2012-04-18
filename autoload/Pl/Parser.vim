@@ -314,18 +314,59 @@ function! s:AddDivider(text, side, mode, colors, prev, curr, next) " {{{
 		" If not, use hard divider with a new highlighting group
 		"
 		" Note that if the previous/next segment is the split, a hard divider is always used
-		if get(div_colors, 'ctermbg') != get(cmp_colors, 'ctermbg') || get(seg_next, 'name') ==# 'SPLIT' || get(seg_prev, 'name') ==# 'SPLIT'
+		"
+		" Note also that we need to take the reverse attribute into
+		" account to decide which two colors to compare.
+		let colorchange = 0
+		let reverse_none = '\(^\|,\)\(reverse\|NONE\)\(,\|$\)'
+		if get(seg_next, 'name') ==# 'SPLIT' || get(seg_prev, 'name') ==# 'SPLIT'
+			let colorchange = 1
+		elseif div_colors['attr'] =~ 'reverse' && cmp_colors['attr'] =~ 'reverse'
+			let colorchange = get(div_colors, 'ctermfg') != get(cmp_colors, 'ctermfg') || get(div_colors, 'attr') != get(cmp_colors, 'attr')
+		elseif div_colors['attr'] =~ 'reverse'
+			let colorchange = get(div_colors, 'ctermfg') != get(cmp_colors, 'ctermbg') || substitute(get(div_colors, 'attr'), reverse_none, '', '') != substitute(get(cmp_colors, 'attr'), reverse_none, '', '')
+		elseif cmp_colors['attr'] =~ 'reverse'
+			let colorchange = get(div_colors, 'ctermbg') != get(cmp_colors, 'ctermfg') || substitute(get(div_colors, 'attr'), reverse_none, '', '') != substitute(get(cmp_colors, 'attr'), reverse_none, '', '')
+		else
+			let colorchange = get(div_colors, 'ctermbg') != get(cmp_colors, 'ctermbg') || substitute(get(div_colors, 'attr'), reverse_none, '', '') != substitute(get(cmp_colors, 'attr'), reverse_none, '', '')
+		endif
+
+		if colorchange
 			let div_type = s:HARD_DIVIDER
 
 			" Create new highlighting group
-			" Use FG = CURRENT BG, BG = CMP BG
-			let div_colors['ctermfg'] = get(div_colors, 'ctermbg')
-			let div_colors['guifg']   = get(div_colors, 'guibg')
+			if div_colors['attr'] =~ 'reverse' && cmp_colors['attr'] =~ 'reverse'
+				" Use FG = CURRENT FG, BG = CMP FG
+				let div_colors['ctermbg'] = get(cmp_colors, 'ctermfg')
+				let div_colors['guibg']   = get(cmp_colors, 'guifg')
 
-			let div_colors['ctermbg'] = get(cmp_colors, 'ctermbg')
-			let div_colors['guibg']   = get(cmp_colors, 'guibg')
+				let div_colors['attr']    = div_colors['attr'] =~ 'bold' ? 'bold' : 'NONE'
+			elseif div_colors['attr'] =~ 'reverse'
+				" Use FG = CURRENT FG, BG = CMP BG
+				let div_colors['ctermbg'] = get(cmp_colors, 'ctermbg')
+				let div_colors['guibg']   = get(cmp_colors, 'guibg')
 
-			let div_colors['attr']    = 'NONE'
+				let div_colors['attr']    = div_colors['attr'] =~ 'bold' ? 'bold' : 'NONE'
+			elseif cmp_colors['attr'] =~ 'reverse'
+				" Use FG = CMP FG, BG = CURRENT BG : reversed
+				let div_colors['ctermfg'] = get(cmp_colors, 'ctermfg')
+				let div_colors['guifg']   = get(cmp_colors, 'guifg')
+
+				let div_colors['attr']    = 'reverse'
+
+			else
+				" Use FG = CURRENT BG, BG = CMP BG
+				let div_colors['ctermfg'] = get(div_colors, 'ctermbg')
+				let div_colors['guifg']   = get(div_colors, 'guibg')
+
+				let div_colors['ctermbg'] = get(cmp_colors, 'ctermbg')
+				let div_colors['guibg']   = get(cmp_colors, 'guibg')
+
+				let div_colors['attr']    = 'NONE'
+			endif
+		elseif div_colors['attr'] =~ 'reverse'
+			" The soft divider needs to pull it's color from the
+			" background, not the foreground
 		endif
 	endif
 
