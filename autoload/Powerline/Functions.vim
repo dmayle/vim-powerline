@@ -2,6 +2,12 @@
 autocmd CursorHold,BufWritePost,InsertLeave * unlet! b:statusline_trailing_space_warning
 
 function! Powerline#Functions#GetFilepath() " {{{
+	if (exists('g:loaded_fugitive') && g:loaded_fugitive == 1)
+          let gitrelpath = Powerline#Functions#fugitive#GetFilepath()
+          if gitrelpath
+            return gitrelpath
+          endif
+        endif
 	let relpath = expand('%')
 
 	if empty(relpath)

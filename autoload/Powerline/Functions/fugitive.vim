@@ -5,3 +5,12 @@ function! Powerline#Functions#fugitive#GetBranch(symbol) " {{{
 
 	return ret
 endfunction " }}}
+function! Powerline#Functions#fugitive#GetFilepath() " {{{
+	try
+		let ret = fugitive#buffer()['path']()
+	catch /not a git repository/
+		return 0
+	endtry
+
+	return ret
+endfunction " }}}
